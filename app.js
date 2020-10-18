@@ -10,6 +10,14 @@ var usersRouter = require("./routes/users");
 var app = express();
 
 app.set("port", 9000);
+const db = require("./config/mongoose");
+
+//========================================================================
+const session = require("express-session");
+const passport = require("passport");
+const passportLocal = require("./config/passport-local-strategy");
+
+const MongoStore = require("connect-mongo")(session);
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -20,6 +28,33 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+
+app.use(
+  session({
+    name: "sanyukt",
+
+    secret: "somesecret",
+    saveUninitialized: false,
+    resave: false,
+    cookie: {
+      maxAge: 1000 * 60 * 100, //in milliseconds
+    },
+    store: new MongoStore(
+      {
+        mongooseConnection: db,
+        autoRemove: "disabled",
+      },
+      function (err) {
+        console.log(err || "connect-mongodb setup ok");
+      }
+    ),
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use(passport.setAuthenticatedUser);
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
